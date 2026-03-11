@@ -1,0 +1,84 @@
+# ===================
+# Python
+# ===================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# ===================
+# Jupyter Notebook
+# ===================
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# ===================
+# Environment & Secrets
+# ===================
+.env
+.env.*
+.venv/
+env/
+venv/
+*.key
+secrets.yaml
+credentials.json
+
+# ===================
+# Data Layers (Medallion)
+# Bronze: raw data        - do not push
+# Silver: cleaned data    - do not push
+# Gold: model-ready data  - do not push
+# Only .gitkeep files are tracked
+# ===================
+data/bronze/*
+data/silver/*
+data/gold/*
+!data/bronze/.gitkeep
+!data/silver/.gitkeep
+!data/gold/.gitkeep
+
+# ===================
+# Model Artifacts
+# ===================
+artifacts/models/*
+artifacts/metrics/*
+artifacts/recommendation_outputs/*
+!artifacts/models/.gitkeep
+!artifacts/metrics/.gitkeep
+!artifacts/recommendation_outputs/.gitkeep
+*.pkl
+*.joblib
+*.pt
+*.pth
+*.h5
+*.onnx
+
+# ===================
+# MLflow / Experiment Tracking
+# ===================
+mlruns/
+mlartifacts/
+
+# ===================
+# Large / Unnecessary Files
+# ===================
+*.csv
+*.parquet
+*.json
+*.xlsx
+*.zip
+*.tar.gz
+*.log
+
+# ===================
+# IDE & OS
+# ===================
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
