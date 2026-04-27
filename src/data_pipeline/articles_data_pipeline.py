@@ -27,8 +27,7 @@ def clean_articles_data_gold(df_silver):
         'colour_group_name', 'perceived_colour_value_name',
         'perceived_colour_master_name', 'department_name',
         'index_name', 'index_group_name', 'section_name',
-        'garment_group_name', 'prod_name', 'detail_desc',
-        'article_id', 'product_code'
+        'garment_group_name', 'prod_name', 'detail_desc'
     ]
     df_gold = df_gold.drop(columns=cols_to_drop)
 
