@@ -24,21 +24,25 @@ log = logging.getLogger(__name__)
 # ── Config ────────────────────────────────────────────────────────────────────
 
 INPUT_PATH  = Path("data/bronze/transactions_train.csv")
-OUTPUT_PATH = Path("data/gold/baskets.parquet")   # parquet önerilir; csv istersen değiştir
-MIN_BASKET_SIZE = 2                           # bu sayının altındaki sepetler düşülür
+OUTPUT_PATH = Path("data/gold/baskets.parquet")   # parquet is recommended; change to csv if needed
+MIN_BASKET_SIZE = 2                               # baskets below this size will be dropped
 
 
 # ── Pipeline ──────────────────────────────────────────────────────────────────
 
 def load(path: Path) -> pd.DataFrame:
     log.info(f"Loading {path} ...")
-    df = pd.read_csv(path, dtype={"article_id": str, "customer_id": str})
+    df = pd.read_csv(
+        path,
+        dtype={"article_id": str, "customer_id": str},
+        parse_dates=["t_dat"],          # ← datetime64[ns]
+    )
     log.info(f"  Loaded {len(df):,} rows × {df.shape[1]} cols")
     return df
 
 
 def group_duplicates(df: pd.DataFrame) -> pd.DataFrame:
-    """Aynı (tarih, müşteri, ürün, fiyat, kanal) satırlarını quantity'ye çevir."""
+    """Collapse duplicate (date, customer, article, price, channel) rows into a quantity column."""
     original_len = len(df)
 
     group_cols = ["t_dat", "customer_id", "article_id", "price", "sales_channel_id"]
@@ -51,14 +55,14 @@ def group_duplicates(df: pd.DataFrame) -> pd.DataFrame:
 
 def build_baskets(df: pd.DataFrame) -> pd.DataFrame:
     """
-    (t_dat, customer_id) bazında article_id'leri listeye topla.
-    apply() yerine hızlı agg + size kullanılıyor (~28M satırda saniyeler içinde biter).
+    Aggregate article_ids into a list per (t_dat, customer_id) pair.
+    Uses agg + size instead of apply() for better performance (~28M rows finishes in seconds).
     """
     log.info("Building baskets ...")
 
     grp = ["t_dat", "customer_id"]
 
-    articles   = df.groupby(grp)["article_id"].agg(list).rename("articles")
+    articles    = df.groupby(grp)["article_id"].agg(list).rename("articles")
     basket_size = df.groupby(grp).size().rename("basket_size")
 
     baskets = pd.concat([articles, basket_size], axis=1).reset_index()
@@ -68,7 +72,7 @@ def build_baskets(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def filter_single_items(df: pd.DataFrame, min_size: int = MIN_BASKET_SIZE) -> pd.DataFrame:
-    """Sepet boyutu min_size'dan küçük olan satırları çıkar."""
+    """Remove baskets whose size is below min_size."""
     before = len(df)
     df = df[df["basket_size"] >= min_size].reset_index(drop=True)
     dropped = before - len(df)
@@ -84,6 +88,10 @@ def save(df: pd.DataFrame, path: Path) -> None:
     if path.suffix == ".parquet":
         df.to_parquet(path, index=False)
     else:
+        log.warning(
+            "CSV format serializes the 'articles' list column as plain strings. "
+            "You will need ast.literal_eval() when reading it back. Parquet is recommended."
+        )
         df.to_csv(path, index=False)
     log.info(f"Saved → {path}")
 
