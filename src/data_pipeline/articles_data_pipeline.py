@@ -22,6 +22,7 @@ def clean_articles_data_gold(df_silver):
     # Keep only columns that will be useful and interpretable
     cols_to_keep = [
         'article_id',
+        'product_code',
         'prod_name',
         'detail_desc',
         'product_type_name',
