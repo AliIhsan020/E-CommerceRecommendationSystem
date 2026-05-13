@@ -1,47 +1,71 @@
-import numpy as np
 import pandas as pd
+
 
 def load_articles_data(path):
     df = pd.read_csv(path)
     return df
 
+
 def clean_articles_data_silver(df):
     df_silver = df.copy()
 
-    # Drop rows with -1 values (encoded missing values, _name equivalents are also Unknown)
-    cols_with_minus1 = [
-        'product_type_no', 'graphical_appearance_no',
-        'colour_group_code', 'perceived_colour_value_id',
-        'perceived_colour_master_id'
-    ]
-    df_silver = df_silver[~(df_silver[cols_with_minus1] == -1).any(axis=1)]
+    # Text columns: missing values should not break feature engineering
+    text_cols = ['prod_name', 'detail_desc']
+    df_silver[text_cols] = df_silver[text_cols].fillna('').astype(str)
 
     return df_silver
+
 
 def clean_articles_data_gold(df_silver):
     df_gold = df_silver.copy()
 
-    # Drop redundant columns
-    cols_to_drop = [
-        'product_type_name', 'graphical_appearance_name',
-        'colour_group_name', 'perceived_colour_value_name',
-        'perceived_colour_master_name', 'department_name',
-        'index_name', 'index_group_name', 'section_name',
-        'garment_group_name', 'prod_name', 'detail_desc'
+    # Keep only columns that will be useful and interpretable
+    cols_to_keep = [
+        'article_id',
+        'prod_name',
+        'detail_desc',
+        'product_type_name',
+        'product_group_name',
+        'graphical_appearance_name',
+        'colour_group_name',
+        'perceived_colour_value_name',
+        'perceived_colour_master_name',
+        'department_name',
+        'index_name',
+        'index_group_name',
+        'section_name',
+        'garment_group_name'
     ]
-    df_gold = df_gold.drop(columns=cols_to_drop)
 
-    # Convert categorical columns to category type
-    cat_cols = [
-        'product_type_no', 'graphical_appearance_no',
-        'colour_group_code', 'perceived_colour_value_id',
-        'perceived_colour_master_id', 'department_no',
-        'index_group_no', 'section_no', 'garment_group_no',
-        'index_code', 'product_group_name'
+    df_gold = df_gold[cols_to_keep].copy()
+
+    # Fill missing categorical values
+    categorical_cols = [
+        'product_type_name',
+        'product_group_name',
+        'graphical_appearance_name',
+        'colour_group_name',
+        'perceived_colour_value_name',
+        'perceived_colour_master_name',
+        'department_name',
+        'index_name',
+        'index_group_name',
+        'section_name',
+        'garment_group_name'
     ]
-    df_gold[cat_cols] = df_gold[cat_cols].astype('category')
+
+    df_gold[categorical_cols] = (
+        df_gold[categorical_cols]
+        .fillna('Unknown')
+        .astype('category')
+    )
+
+    # Ensure text columns are clean
+    text_cols = ['prod_name', 'detail_desc']
+    df_gold[text_cols] = df_gold[text_cols].fillna('').astype(str)
 
     return df_gold
+
 
 def run_articles_pipeline(path, silver_path, gold_path):
     df = load_articles_data(path)
@@ -53,6 +77,7 @@ def run_articles_pipeline(path, silver_path, gold_path):
     df_gold = clean_articles_data_gold(df_silver)
     df_gold.to_parquet(gold_path, index=False)
     print("Gold saved:", df_gold.shape)
+
 
 if __name__ == "__main__":
     run_articles_pipeline(
